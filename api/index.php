@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
-require dirname(__DIR__) . "/vendor/autoload.php";
+require __DIR__ . "/bootstrap.php";
 
-set_error_handler("ErrorHandler::handleError");
-set_exception_handler("ErrorHandler::handleException");
+//require dirname(__DIR__) . "/vendor/autoload.php";
 
+//set_error_handler("ErrorHandler::handleError");
+//set_exception_handler("ErrorHandler::handleException");
+
+//http://localhost/2022api/api/tasks
 $path = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
 
 $parts = explode("/", $path);
@@ -25,12 +28,23 @@ if ($resourse != "tasks") {
   exit;
 }
 
-header("Content-type: application/json; charset=UTF-8");
-
 $database = new Database();
+// header X-API-KEY
+//$api_key = $_SERVER["HTTP_X_API_KEY"];
+
+$user_gateway = new UserGateway($database);
+
+$auth = new Auth($user_gateway);
+
+if ( !$auth->authenticationAPIKey())
+{
+  exit;
+}
+
+$user_id = $auth->getUserID();
 
 $task_gateway = new TaskGateway($database);
 
-$controller = new TaskController($task_gateway);
+$controller = new TaskController($task_gateway, $user_id);
 
 $controller->processRequest($_SERVER['REQUEST_METHOD'], $id);
